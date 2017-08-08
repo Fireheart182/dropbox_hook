@@ -48,19 +48,22 @@ def verify(url, challenge):
 @click.argument('url', metavar='URL', required=True)
 @click.option('--secret', '-s', help='Your app secret', metavar='APP_SECRET', required=True)
 @click.option('--account', '-a', help='The account IDs to send to the webhook URI (may be specified multiple times).', multiple=True, metavar='ACCOUNT_ID', required=True, type=str)
-def notify(url, secret, account):
+@click.option('--user', '-u', help='The user IDs to send to the webhook URI (may be specified multiple times).', multiple=True, metavar='USER_ID', required=True, type=int)
+def notify(url, secret, account, user):
     '''Send a notification request. Example usage:
 
     dropbox_hook.py notify http://www.example.com --secret ABC123 --account 12345
     '''
 
-    body = json.dumps({ 'list_folder': { 'accounts': account } })
+    body = json.dumps({ 'list_folder': { 'accounts' : account }, 
+                        'delta': {'users' : user} })
 
+    sig = hmac.new(secret.encode(), body.encode(), sha256).hexdigest()
     response = requests.post(
         url,
         data=body,
         headers={
-            'X-Dropbox-Signature': hmac.new(secret.encode(), body.encode(), sha256).hexdigest(),
+            'X-Dropbox-Signature': sig,
             'Content-type' : 'application/json'
         })
     if response.status_code == 200:
